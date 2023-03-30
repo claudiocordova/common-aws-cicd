@@ -1,0 +1,128 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Metadata:
+    Generator: "Claudio Cordova"
+Description: ""
+Resources:
+    CodeBuildProject:
+        Type: "AWS::CodeBuild::Project"
+        Properties:
+            Name: "poker-analyzer-service-codebuild"
+            Source: 
+                InsecureSsl: false
+                Type: "CODEPIPELINE"
+            Artifacts: 
+                EncryptionDisabled: false
+                Name: "poker-analyzer-service-codebuild"
+                Packaging: "NONE"
+                Type: "CODEPIPELINE"
+            Cache: 
+                Type: "NO_CACHE"
+            Environment: 
+                ComputeType: "BUILD_GENERAL1_SMALL"
+                EnvironmentVariables: 
+                  - 
+                    Name: "AWS_DEFAULT_REGION"
+                    Type: "PLAINTEXT"
+                    Value: !Ref AWS::Region
+                  - 
+                    Name: "CONTAINER_NAME"
+                    Type: "PLAINTEXT"
+                    Value: "poker-analyzer-service-container"
+                  - 
+                    Name: "ACCOUNT_ID"
+                    Type: "PLAINTEXT"
+                    Value: !Ref AWS::AccountId                 
+                  - 
+                    Name: "REPOSITORY_URI"
+                    Type: "PLAINTEXT"
+                    Value: !ImportValue PokeAnalyzerServiceRepositoryUri
+                  - 
+                    Name: "TASK_DEFINITION_ARN"
+                    Type: "PLAINTEXT"
+                    Value: !ImportValue PokerAnalyzerTaskDefinitionArn                    
+                Image: "aws/codebuild/standard:6.0"
+                ImagePullCredentialsType: "CODEBUILD"
+                PrivilegedMode: true
+                Type: "LINUX_CONTAINER"
+            #ServiceRole: !Sub "arn:aws:iam::${AWS::AccountId}:role/service-role/codebuild-poker-analyzer-service-codebuild-service-role"
+            #ServiceRole: !Sub "arn:aws:iam::${AWS::AccountId}:role/service-role/codebuild-poker-hand-analyzer-microservice-build-service-role"
+            ServiceRole: !GetAtt IAMRole.Arn 
+            TimeoutInMinutes: 60
+            QueuedTimeoutInMinutes: 480
+            EncryptionKey: !Sub "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/s3"
+            BadgeEnabled: false
+            LogsConfig: 
+                CloudWatchLogs: 
+                    Status: "ENABLED"
+                S3Logs: 
+                    Status: "DISABLED"
+                    EncryptionDisabled: false
+            Visibility: "PRIVATE"
+    IAMRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            Path: "/service-role/"
+            RoleName: "codebuild-poker-analyzer-service-codebuild-service-role"
+            #AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"codebuild.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+            AssumeRolePolicyDocument: |
+                { "Version" : "2012-10-17",
+                  "Statement": [
+                      {  "Effect": "Allow",
+                         "Principal": { "Service": "codebuild.amazonaws.com"}, 
+                         "Action":"sts:AssumeRole"
+                      } ] }
+            MaxSessionDuration: 3600
+            ManagedPolicyArns: 
+              - !Ref IAMManagedPolicy
+              - "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"            
+    IAMManagedPolicy:
+        Type: "AWS::IAM::ManagedPolicy"
+        Properties:
+            ManagedPolicyName: !Sub "CodeBuildBasePolicy-poker-analyzer-service-codebuild-${AWS::Region}"
+            Path: "/service-role/"
+            #Roles: 
+            #  - "codebuild-poker-analyzer-service-codebuild-service-role"
+            PolicyDocument: !Sub |
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Resource": [
+                                "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/poker-analyzer-service-codebuild",
+                                "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/poker-analyzer-service-codebuild:*"
+                            ],
+                            "Action": [
+                                "logs:CreateLogGroup",
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents"
+                            ]
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Resource": [
+                                "arn:aws:s3:::codepipeline-${AWS::Region}-*"
+                            ],
+                            "Action": [
+                                "s3:PutObject",
+                                "s3:GetObject",
+                                "s3:GetObjectVersion",
+                                "s3:GetBucketAcl",
+                                "s3:GetBucketLocation"
+                            ]
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "codebuild:CreateReportGroup",
+                                "codebuild:CreateReport",
+                                "codebuild:UpdateReport",
+                                "codebuild:BatchPutTestCases",
+                                "codebuild:BatchPutCodeCoverages"
+                            ],
+                            "Resource": [
+                                "arn:aws:codebuild:${AWS::Region}:${AWS::AccountId}:report-group/poker-analyzer-service-codebuild-*"
+                            ]
+                        }
+                    ]
+                }              
