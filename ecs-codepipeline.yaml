@@ -165,7 +165,7 @@ Resources:
                         Provider: "ECS"
                         Version: "1"
                     Configuration: 
-                        ClusterName: !ImportValue ECSClusterFargateName
+                        ClusterName: !ImportValue ECSClusterName
                         FileName: "imagedefinitions.json"
                         ServiceName: "poker-analyzer-service"
                     InputArtifacts: 
