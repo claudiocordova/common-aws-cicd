@@ -12,7 +12,7 @@ Resources:
             Source: 
                 InsecureSsl: false
                 Type: "CODEPIPELINE"
-                BuildSpec: ecs-buildspec.yaml                
+                BuildSpec: eks-buildspec.yaml
             Artifacts: 
                 EncryptionDisabled: false
                 Name: "poker-analyzer-service-codebuild"
@@ -28,21 +28,45 @@ Resources:
                     Type: "PLAINTEXT"
                     Value: !Ref AWS::Region
                   - 
-                    Name: "CONTAINER_NAME"
-                    Type: "PLAINTEXT"
-                    Value: "poker-analyzer-service-container"
-                  - 
                     Name: "ACCOUNT_ID"
                     Type: "PLAINTEXT"
-                    Value: !Ref AWS::AccountId                 
+                    Value: !Ref AWS::AccountId        
+
                   - 
                     Name: "REPOSITORY_URI"
                     Type: "PLAINTEXT"
                     Value: !ImportValue PokeAnalyzerServiceRepositoryUri
+  
                   - 
-                    Name: "TASK_DEFINITION_ARN"
+                    Name: "REPOSITORY_NAME"
                     Type: "PLAINTEXT"
-                    Value: !ImportValue PokerAnalyzerTaskDefinitionArn                    
+                    Value: "poker-hand-analyzer-microservice-springboot"
+
+
+                  - 
+                    Name: "ENVIRONMENT_NAME"
+                    Type: "PLAINTEXT"
+                    Value: "test"
+
+                  - 
+                    Name: "REPOSITORY_BRANCH"
+                    Type: "PLAINTEXT"
+                    Value: "main"
+
+                  - 
+                    Name: "EKS_CLUSTER_NAME"
+                    Type: "PLAINTEXT"
+                    Value: "eks-cluster"         
+
+                  - 
+                    Name: "EKS_KUBECTL_ROLE_ARN"
+                    Type: "PLAINTEXT"
+                    Value: "arn:aws:iam::361494667617:role/KubeCtlRole"    
+
+
+
+                               
+
                 Image: "aws/codebuild/standard:6.0"
                 ImagePullCredentialsType: "CODEBUILD"
                 PrivilegedMode: true
